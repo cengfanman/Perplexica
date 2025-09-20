@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Youtube } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import Attach from './MessageInputActions/Attach';
@@ -7,14 +7,44 @@ import CopilotToggle from './MessageInputActions/Copilot';
 import { File } from './ChatWindow';
 import AttachSmall from './MessageInputActions/AttachSmall';
 import { useChat } from '@/lib/hooks/useChat';
+import { useYouTube } from '@/lib/hooks/useYouTube';
 
 const MessageInput = () => {
   const { loading, sendMessage } = useChat();
+  const { detectYouTubeUrls, isDetecting } = useYouTube();
 
   const [copilotEnabled, setCopilotEnabled] = useState(false);
   const [message, setMessage] = useState('');
   const [textareaRows, setTextareaRows] = useState(1);
   const [mode, setMode] = useState<'multi' | 'single'>('single');
+  const [youtubeDetected, setYoutubeDetected] = useState<{
+    urls: string[];
+    videoIds: string[];
+  } | null>(null);
+
+  // Detect YouTube URLs when message changes
+  useEffect(() => {
+    // Only set timeout if message has content
+    if (message.trim()) {
+      const detectYouTube = async () => {
+        const detection = await detectYouTubeUrls(message);
+        if (detection?.hasYouTubeContent) {
+          setYoutubeDetected({
+            urls: detection.urls,
+            videoIds: detection.videoIds,
+          });
+        } else {
+          setYoutubeDetected(null);
+        }
+      };
+
+      const timeoutId = setTimeout(detectYouTube, 500); // Debounce
+      return () => clearTimeout(timeoutId);
+    } else {
+      // Clear YouTube detection when message is empty
+      setYoutubeDetected(null);
+    }
+  }, [message]);
 
   useEffect(() => {
     if (textareaRows >= 2 && message && mode === 'single') {
@@ -79,6 +109,17 @@ const MessageInput = () => {
         className="transition bg-transparent dark:placeholder:text-white/50 placeholder:text-sm text-sm dark:text-white resize-none focus:outline-none w-full px-2 max-h-24 lg:max-h-36 xl:max-h-48 flex-grow flex-shrink"
         placeholder="Ask a follow-up"
       />
+      
+      {/* YouTube Detection Indicator */}
+      {youtubeDetected && (
+        <div className="flex items-center space-x-2 px-2">
+          <Youtube size={16} className="text-red-500" />
+          <span className="text-xs text-black/70 dark:text-white/70">
+            {youtubeDetected.videoIds.length} video{youtubeDetected.videoIds.length > 1 ? 's' : ''} detected
+          </span>
+        </div>
+      )}
+      
       {mode === 'single' && (
         <div className="flex flex-row items-center space-x-4">
           <CopilotToggle

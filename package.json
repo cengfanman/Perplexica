@@ -44,10 +44,12 @@
     "react-dom": "^18",
     "react-text-to-speech": "^0.14.5",
     "react-textarea-autosize": "^8.5.3",
+    "redis": "^5.8.2",
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.2.2",
     "winston": "^3.17.0",
     "yet-another-react-lightbox": "^3.17.2",
+    "youtubei": "^1.7.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

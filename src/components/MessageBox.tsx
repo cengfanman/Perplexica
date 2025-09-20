@@ -24,7 +24,9 @@ import { useChat } from '@/lib/hooks/useChat';
 import CitationPopup from './CitationPopup';
 import CitationDetail from './CitationDetail';
 import CitationRenderer from './CitationRenderer';
+import YouTubeMessage from './YouTubeMessage';
 import { Document } from '@langchain/core/documents';
+import { useYouTube } from '@/lib/hooks/useYouTube';
 
 const ThinkTagProcessor = ({
   children,
@@ -50,10 +52,12 @@ const MessageBox = ({
   isLast: boolean;
 }) => {
   const { loading, messages: history, sendMessage, rewrite } = useChat();
+  const { detectYouTubeUrls } = useYouTube();
 
   const [parsedMessage, setParsedMessage] = useState(message.content);
   const [speechMessage, setSpeechMessage] = useState(message.content);
   const [thinkingEnded, setThinkingEnded] = useState(false);
+  const [youtubeVideoIds, setYoutubeVideoIds] = useState<string[]>([]);
 
   // Citation popup state
   const [citationPopup, setCitationPopup] = useState<{
@@ -120,28 +124,43 @@ const MessageBox = ({
   };
 
   useEffect(() => {
-    const citationRegex = /\[([^\]]+)\]/g;
-    const regex = /\[(\d+)\]/g;
-    let processedMessage = message.content;
+    const processMessage = async () => {
+      const citationRegex = /\[([^\]]+)\]/g;
+      const regex = /\[(\d+)\]/g;
+      let processedMessage = message.content;
 
-    if (message.role === 'assistant' && message.content.includes('<think>')) {
-      const openThinkTag = processedMessage.match(/<think>/g)?.length || 0;
-      const closeThinkTag = processedMessage.match(/<\/think>/g)?.length || 0;
+      if (message.role === 'assistant' && message.content.includes('<think>')) {
+        const openThinkTag = processedMessage.match(/<think>/g)?.length || 0;
+        const closeThinkTag = processedMessage.match(/<\/think>/g)?.length || 0;
 
-      if (openThinkTag > closeThinkTag) {
-        processedMessage += '</think> <a> </a>'; // The extra <a> </a> is to prevent the the think component from looking bad
+        if (openThinkTag > closeThinkTag) {
+          processedMessage += '</think> <a> </a>'; // The extra <a> </a> is to prevent the the think component from looking bad
+        }
       }
-    }
 
-    if (message.role === 'assistant' && message.content.includes('</think>')) {
-      setThinkingEnded(true);
-    }
+      if (message.role === 'assistant' && message.content.includes('</think>')) {
+        setThinkingEnded(true);
+      }
 
-    // For speech, always remove citation numbers
-    setSpeechMessage(message.content.replace(regex, ''));
+      // Detect YouTube URLs in user messages (only once per message)
+      if (message.role === 'user') {
+        // Only detect if we haven't already processed this message
+        if (youtubeVideoIds.length === 0) {
+          const detection = await detectYouTubeUrls(message.content);
+          if (detection?.hasYouTubeContent) {
+            setYoutubeVideoIds(detection.videoIds);
+          }
+        }
+      }
 
-    // Keep original message for rendering with citations
-    setParsedMessage(processedMessage);
+      // For speech, always remove citation numbers
+      setSpeechMessage(message.content.replace(regex, ''));
+
+      // Keep original message for rendering with citations
+      setParsedMessage(processedMessage);
+    };
+
+    processMessage();
   }, [message.content, message.sources, message.role]);
 
   const { speechStatus, start, stop } = useSpeech({ text: speechMessage });
@@ -220,9 +239,18 @@ const MessageBox = ({
             'break-words',
           )}
         >
-          <h2 className="text-black dark:text-white font-medium text-3xl lg:w-9/12">
-            {message.content}
-          </h2>
+          {youtubeVideoIds.length > 0 ? (
+            <div className="lg:w-9/12">
+              <YouTubeMessage 
+                videoIds={youtubeVideoIds} 
+                messageContent={message.content}
+              />
+            </div>
+          ) : (
+            <h2 className="text-black dark:text-white font-medium text-3xl lg:w-9/12">
+              {message.content}
+            </h2>
+          )}
         </div>
       )}
 
