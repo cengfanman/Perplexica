@@ -254,7 +254,7 @@ const MessageBox = ({
         </div>
       )}
 
-      {message.role === 'assistant' && (
+      {message.role === 'assistant' && message.content && message.content.trim() && (
         <div className="flex flex-col space-y-9 lg:space-y-0 lg:flex-row lg:justify-between lg:space-x-9">
           <div
             ref={dividerRef}

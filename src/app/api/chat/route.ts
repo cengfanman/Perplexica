@@ -17,6 +17,7 @@ import {
   getCustomOpenaiModelName,
 } from '@/lib/config';
 import { searchHandlers } from '@/lib/search';
+import { youtubeService } from '@/lib/youtube';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -264,6 +265,62 @@ export const POST = async (req: Request) => {
         });
       }
     });
+
+    // Check if the message contains YouTube URLs
+    const youtubeUrls = youtubeService.detectYouTubeUrls(message.content);
+    const hasYouTubeContent = youtubeUrls.length > 0;
+
+    if (hasYouTubeContent) {
+      // For YouTube content, skip the AI search and answer phase
+      // Just return a simple acknowledgment
+      const responseStream = new TransformStream();
+      const writer = responseStream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      // Send empty sources first
+      writer.write(
+        encoder.encode(
+          JSON.stringify({
+            type: 'sources',
+            data: [],
+            messageId: aiMessageId,
+          }) + '\n',
+        ),
+      );
+
+      // For YouTube content, we don't need an AI response
+      // Just end the message stream immediately
+      writer.write(
+        encoder.encode(
+          JSON.stringify({
+            type: 'messageEnd',
+            messageId: aiMessageId,
+          }) + '\n',
+        ),
+      );
+
+      writer.close();
+
+      // Save user message to database
+      await db.insert(messagesSchema).values({
+        content: message.content,
+        chatId: message.chatId,
+        messageId: humanMessageId,
+        role: 'user',
+        metadata: JSON.stringify({
+          createdAt: new Date(),
+          ...(body.files && body.files.length > 0 && { files: body.files }),
+        }),
+      });
+
+      return new Response(responseStream.readable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          Connection: 'keep-alive',
+          'Cache-Control': 'no-cache, no-transform',
+        },
+      });
+    }
 
     const handler = searchHandlers[body.focusMode];
 
