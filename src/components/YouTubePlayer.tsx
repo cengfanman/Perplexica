@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Play, Clock, User, Eye, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { YouTubeVideoInfo, YouTubeTranscript } from '@/lib/youtube';
+import YouTubeTranscriptComponent from './YouTubeTranscript';
 import { cn } from '@/lib/utils';
 
 interface YouTubePlayerProps {
@@ -20,6 +21,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 }) => {
   const [showTranscript, setShowTranscript] = useState(false);
   const [showSummary, setShowSummary] = useState(true);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const formatViewCount = (count: string) => {
     const num = parseInt(count);
@@ -37,12 +39,26 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleTimestampClick = (timestamp: number) => {
+    // Try to jump to timestamp in the embedded player
+    if (iframeRef.current) {
+      const currentSrc = iframeRef.current.src;
+      const baseUrl = currentSrc.split('?')[0];
+      const newSrc = `${baseUrl}?start=${Math.floor(timestamp)}&autoplay=1&rel=0`;
+      iframeRef.current.src = newSrc;
+    }
+
+    // Also call the provided callback
+    onTranscriptClick?.(timestamp);
+  };
+
   return (
     <div className="bg-white dark:bg-dark-secondary border border-light-200 dark:border-dark-200 rounded-lg overflow-hidden shadow-sm">
       {/* Video Player */}
       <div className="relative aspect-video bg-black">
         <iframe
-          src={`https://www.youtube.com/embed/${videoInfo.videoId}?rel=0`}
+          ref={iframeRef}
+          src={`https://www.youtube.com/embed/${videoInfo.videoId}?rel=0&enablejsapi=1`}
           title={videoInfo.title}
           className="w-full h-full"
           allowFullScreen
@@ -110,53 +126,11 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         )}
 
         {/* Transcript Section */}
-        {transcript && (
-          <div>
-            <button
-              onClick={() => setShowTranscript(!showTranscript)}
-              className="flex items-center justify-between w-full p-3 bg-light-50 dark:bg-dark-100 rounded-lg hover:bg-light-100 dark:hover:bg-dark-200 transition-colors"
-            >
-              <span className="font-medium text-black dark:text-white">
-                Transcript ({transcript.segments.length} segments)
-              </span>
-              {showTranscript ? (
-                <ChevronUp size={16} className="text-black/50 dark:text-white/50" />
-              ) : (
-                <ChevronDown size={16} className="text-black/50 dark:text-white/50" />
-              )}
-            </button>
-
-            {showTranscript && (
-              <div className="mt-3 max-h-64 overflow-y-auto bg-light-50 dark:bg-dark-100 rounded-lg">
-                {transcript.segments.length > 0 ? (
-                  <div className="p-3 space-y-2">
-                    {transcript.segments.map((segment, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          'flex items-start space-x-3 p-2 rounded hover:bg-light-100 dark:hover:bg-dark-200 transition-colors',
-                          onTranscriptClick && 'cursor-pointer'
-                        )}
-                        onClick={() => onTranscriptClick?.(segment.start)}
-                      >
-                        <span className="text-xs text-blue-600 dark:text-blue-400 font-mono bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
-                          {formatTimestamp(segment.start)}
-                        </span>
-                        <p className="text-sm text-black/80 dark:text-white/80 flex-1">
-                          {segment.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-sm text-black/50 dark:text-white/50">
-                    No transcript segments available
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        <YouTubeTranscriptComponent
+          transcript={transcript}
+          onTimestampClick={handleTimestampClick}
+          className="mb-4"
+        />
       </div>
     </div>
   );

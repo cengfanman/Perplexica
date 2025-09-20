@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       if (!videoInfo) {
         await cacheService.setProcessingStatus(videoId, 'failed');
         return NextResponse.json(
-          { error: 'Failed to get video information' },
+          { error: 'Video not found or invalid video ID' },
           { status: 404 }
         );
       }

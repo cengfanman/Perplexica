@@ -17,7 +17,10 @@ const YouTubeMessage: React.FC<YouTubeMessageProps> = ({ videoIds, messageConten
   useEffect(() => {
     const processVideos = async () => {
       for (const videoId of videoIds) {
-        if (processingStatus[videoId] === 'completed' || processingStatus[videoId] === 'processing') {
+        // Check if video is already processed or being processed
+        if (processingStatus[videoId] === 'completed' ||
+            processingStatus[videoId] === 'processing' ||
+            videoData[videoId]) {
           continue;
         }
 
@@ -40,7 +43,7 @@ const YouTubeMessage: React.FC<YouTubeMessageProps> = ({ videoIds, messageConten
     };
 
     processVideos();
-  }, [videoIds, processVideo, getSummary, processingStatus]);
+  }, [videoIds, processVideo, getSummary, videoData]); // 移除 processingStatus 依赖
 
   if (videoIds.length === 0) {
     return null;
