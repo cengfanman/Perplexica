@@ -21,6 +21,10 @@ import SearchVideos from './SearchVideos';
 import { useSpeech } from 'react-text-to-speech';
 import ThinkBox from './ThinkBox';
 import { useChat } from '@/lib/hooks/useChat';
+import CitationPopup from './CitationPopup';
+import CitationDetail from './CitationDetail';
+import CitationRenderer from './CitationRenderer';
+import { Document } from '@langchain/core/documents';
 
 const ThinkTagProcessor = ({
   children,
@@ -51,6 +55,70 @@ const MessageBox = ({
   const [speechMessage, setSpeechMessage] = useState(message.content);
   const [thinkingEnded, setThinkingEnded] = useState(false);
 
+  // Citation popup state
+  const [citationPopup, setCitationPopup] = useState<{
+    isVisible: boolean;
+    source: Document | null;
+    position: { x: number; y: number };
+  }>({
+    isVisible: false,
+    source: null,
+    position: { x: 0, y: 0 },
+  });
+
+  // Citation detail state
+  const [citationDetail, setCitationDetail] = useState<{
+    isOpen: boolean;
+    source: Document | null;
+  }>({
+    isOpen: false,
+    source: null,
+  });
+
+  // Handle citation hover
+  const handleCitationHover = (
+    hovering: boolean,
+    source: Document | null,
+    position: { x: number; y: number }
+  ) => {
+    setCitationPopup({
+      isVisible: hovering,
+      source,
+      position,
+    });
+  };
+
+  // Handle citation click
+  const handleCitationClick = (source: Document) => {
+    setCitationDetail({
+      isOpen: true,
+      source,
+    });
+    // Close popup when showing detail
+    setCitationPopup({
+      isVisible: false,
+      source: null,
+      position: { x: 0, y: 0 },
+    });
+  };
+
+  // Close citation detail
+  const closeCitationDetail = () => {
+    setCitationDetail({
+      isOpen: false,
+      source: null,
+    });
+  };
+
+  // Close citation popup
+  const closeCitationPopup = () => {
+    setCitationPopup({
+      isVisible: false,
+      source: null,
+      position: { x: 0, y: 0 },
+    });
+  };
+
   useEffect(() => {
     const citationRegex = /\[([^\]]+)\]/g;
     const regex = /\[(\d+)\]/g;
@@ -69,59 +137,52 @@ const MessageBox = ({
       setThinkingEnded(true);
     }
 
-    if (
-      message.role === 'assistant' &&
-      message?.sources &&
-      message.sources.length > 0
-    ) {
-      setParsedMessage(
-        processedMessage.replace(
-          citationRegex,
-          (_, capturedContent: string) => {
-            const numbers = capturedContent
-              .split(',')
-              .map((numStr) => numStr.trim());
-
-            const linksHtml = numbers
-              .map((numStr) => {
-                const number = parseInt(numStr);
-
-                if (isNaN(number) || number <= 0) {
-                  return `[${numStr}]`;
-                }
-
-                const source = message.sources?.[number - 1];
-                const url = source?.metadata?.url;
-
-                if (url) {
-                  return `<a href="${url}" target="_blank" className="bg-light-secondary dark:bg-dark-secondary px-1 rounded ml-1 no-underline text-xs text-black/70 dark:text-white/70 relative">${numStr}</a>`;
-                } else {
-                  return ``;
-                }
-              })
-              .join('');
-
-            return linksHtml;
-          },
-        ),
-      );
-      setSpeechMessage(message.content.replace(regex, ''));
-      return;
-    } else if (
-      message.role === 'assistant' &&
-      message?.sources &&
-      message.sources.length === 0
-    ) {
-      setParsedMessage(processedMessage.replace(regex, ''));
-      setSpeechMessage(message.content.replace(regex, ''));
-      return;
-    }
-
+    // For speech, always remove citation numbers
     setSpeechMessage(message.content.replace(regex, ''));
+
+    // Keep original message for rendering with citations
     setParsedMessage(processedMessage);
   }, [message.content, message.sources, message.role]);
 
   const { speechStatus, start, stop } = useSpeech({ text: speechMessage });
+
+  const CitationWrapper = ({ children, ...props }: any) => {
+    if (message.sources && message.sources.length > 0) {
+      return (
+        <CitationRenderer
+          sources={message.sources}
+          onCitationHover={handleCitationHover}
+          onCitationClick={handleCitationClick}
+        >
+          {children}
+        </CitationRenderer>
+      );
+    }
+    return children;
+  };
+
+  const CitationParagraph = ({ children, ...props }: any) => {
+    return (
+      <p {...props}>
+        <CitationWrapper>{children}</CitationWrapper>
+      </p>
+    );
+  };
+
+  const CitationListItem = ({ children, ...props }: any) => {
+    return (
+      <li {...props}>
+        <CitationWrapper>{children}</CitationWrapper>
+      </li>
+    );
+  };
+
+  const CitationHeading = (Tag: 'h1' | 'h2' | 'h3') => 
+    ({ children, ...props }: any) => (
+      <Tag {...props}>
+        <CitationWrapper>{children}</CitationWrapper>
+      </Tag>
+    );
 
   const markdownOverrides: MarkdownToJSX.Options = {
     overrides: {
@@ -130,6 +191,21 @@ const MessageBox = ({
         props: {
           thinkingEnded: thinkingEnded,
         },
+      },
+      p: {
+        component: CitationParagraph,
+      },
+      li: {
+        component: CitationListItem,
+      },
+      h1: {
+        component: CitationHeading('h1'),
+      },
+      h2: {
+        component: CitationHeading('h2'),
+      },
+      h3: {
+        component: CitationHeading('h3'),
       },
     },
   };
@@ -274,6 +350,22 @@ const MessageBox = ({
           </div>
         </div>
       )}
+
+      {/* Citation Popup */}
+      <CitationPopup
+        source={citationPopup.source}
+        isVisible={citationPopup.isVisible}
+        position={citationPopup.position}
+        onClose={closeCitationPopup}
+        onCitationClick={handleCitationClick}
+      />
+
+      {/* Citation Detail Sidebar */}
+      <CitationDetail
+        source={citationDetail.source}
+        isOpen={citationDetail.isOpen}
+        onClose={closeCitationDetail}
+      />
     </div>
   );
 };
