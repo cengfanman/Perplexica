@@ -4,10 +4,10 @@ import { cacheService } from '@/lib/cache';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
   try {
-    const { videoId } = params;
+    const { videoId } = await params;
 
     if (!videoId) {
       return NextResponse.json(

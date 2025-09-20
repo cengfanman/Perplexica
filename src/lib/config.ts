@@ -54,6 +54,7 @@ interface Config {
   };
   API_ENDPOINTS: {
     SEARXNG: string;
+    YOUTUBE_API_KEY: string;
   };
 }
 
@@ -113,6 +114,8 @@ export const getLemonadeApiEndpoint = () =>
   loadConfig().MODELS.LEMONADE.API_URL;
 
 export const getLemonadeApiKey = () => loadConfig().MODELS.LEMONADE.API_KEY;
+
+export const getYouTubeApiKey = () => loadConfig().API_ENDPOINTS.YOUTUBE_API_KEY;
 
 const mergeConfigs = (current: any, update: any): any => {
   if (update === null || update === undefined) {

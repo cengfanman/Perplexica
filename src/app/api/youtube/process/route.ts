@@ -50,22 +50,21 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Get transcript
+      // Get transcript (optional)
       const transcript = await youtubeService.getTranscript(videoId);
-      if (!transcript) {
-        await cacheService.setProcessingStatus(videoId, 'failed');
-        return NextResponse.json(
-          { error: 'Failed to get video transcript' },
-          { status: 404 }
-        );
-      }
+      // Continue even if transcript is not available
 
       // Cache the results
-      await Promise.all([
+      const cachePromises = [
         cacheService.cacheVideoInfo(videoId, videoInfo),
-        cacheService.cacheTranscript(videoId, transcript),
         cacheService.setProcessingStatus(videoId, 'completed'),
-      ]);
+      ];
+
+      if (transcript) {
+        cachePromises.push(cacheService.cacheTranscript(videoId, transcript));
+      }
+
+      await Promise.all(cachePromises);
 
       return NextResponse.json({
         status: 'completed',

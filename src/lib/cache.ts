@@ -6,32 +6,8 @@ class CacheService {
   private isConnected = false;
 
   async connect() {
-    if (this.isConnected && this.client) {
-      return this.client;
-    }
-
-    try {
-      this.client = createClient({
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
-      });
-
-      this.client.on('error', (err) => {
-        console.error('Redis Client Error:', err);
-        this.isConnected = false;
-      });
-
-      this.client.on('connect', () => {
-        console.log('Redis Client Connected');
-        this.isConnected = true;
-      });
-
-      await this.client.connect();
-      return this.client;
-    } catch (error) {
-      console.error('Failed to connect to Redis:', error);
-      this.isConnected = false;
-      return null;
-    }
+    // Redis is temporarily disabled
+    return null;
   }
 
   async disconnect() {
