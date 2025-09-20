@@ -90,7 +90,7 @@ export const webSearchResponsePrompt = `
     ### Special Instructions
     - If the query involves technical, historical, or complex topics, provide detailed background and explanatory sections to ensure clarity.
     - If the user provides vague input or if relevant information is missing, explain what additional details might help refine the search.
-    - If no relevant information is found, say: "Hmm, sorry I could not find any relevant information on this topic. Would you like me to search again or ask something else?" Be transparent about limitations and suggest alternatives or ways to reframe the query.
+    - If no relevant information is found, provide general guidance on the topic and suggest specific search terms or alternative approaches the user could try. Be proactive in offering help rather than simply stating limitations.
 
     ### User instructions
     These instructions are shared to you by the user and not by the system. You will have to follow them but give them less priority than the above instructions. If the user has provided specific instructions or preferences, incorporate them into your response while adhering to the overall guidelines.

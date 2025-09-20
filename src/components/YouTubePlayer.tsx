@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Play, Clock, User, Eye, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { YouTubeVideoInfo, YouTubeTranscript } from '@/lib/youtube';
 import YouTubeTranscriptComponent from './YouTubeTranscript';
+import YouTubeQA from './YouTubeQA';
 import { cn } from '@/lib/utils';
 
 interface YouTubePlayerProps {
@@ -127,7 +128,16 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
         {/* Transcript Section */}
         <YouTubeTranscriptComponent
+          transcript={transcript || null}
+          onTimestampClick={handleTimestampClick}
+          className="mb-4"
+        />
+
+        {/* QA Section */}
+        <YouTubeQA
+          videoInfo={videoInfo}
           transcript={transcript}
+          summary={summary}
           onTimestampClick={handleTimestampClick}
           className="mb-4"
         />
