@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOpenaiApiKey } from '@/lib/config';
+import { cacheService } from '@/lib/cache';
 
 interface QAMessage {
   id: string;
@@ -27,6 +28,17 @@ export async function POST(req: NextRequest) {
         { error: 'Video ID and question are required' },
         { status: 400 }
       );
+    }
+
+    // Check cache first
+    const cachedQA = await cacheService.getQA(videoId, question);
+    if (cachedQA) {
+      return NextResponse.json({
+        answer: cachedQA.answer,
+        videoId,
+        cached: true,
+        cachedAt: new Date(cachedQA.timestamp).toISOString(),
+      });
     }
 
     const apiKey = getOpenaiApiKey();
@@ -109,10 +121,14 @@ ${videoContext}`;
       relatedTimestamp = minutes * 60 + seconds;
     }
 
+    // Cache the result
+    await cacheService.cacheQA(videoId, question, answer);
+
     return NextResponse.json({
       answer,
       relatedTimestamp,
       videoId,
+      cached: false,
     });
 
   } catch (error) {

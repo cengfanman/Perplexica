@@ -56,6 +56,10 @@ interface Config {
     SEARXNG: string;
     YOUTUBE_API_KEY: string;
   };
+  CACHE: {
+    REDIS_URL: string;
+    ENABLED: boolean;
+  };
 }
 
 type RecursivePartial<T> = {
@@ -116,6 +120,12 @@ export const getLemonadeApiEndpoint = () =>
 export const getLemonadeApiKey = () => loadConfig().MODELS.LEMONADE.API_KEY;
 
 export const getYouTubeApiKey = () => loadConfig().API_ENDPOINTS.YOUTUBE_API_KEY;
+
+export const getRedisUrl = () =>
+  process.env.REDIS_URL || loadConfig().CACHE?.REDIS_URL || 'redis://localhost:6379';
+
+export const isCacheEnabled = () =>
+  process.env.CACHE_ENABLED !== 'false' && loadConfig().CACHE?.ENABLED !== false;
 
 const mergeConfigs = (current: any, update: any): any => {
   if (update === null || update === undefined) {
