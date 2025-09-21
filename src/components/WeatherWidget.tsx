@@ -14,6 +14,7 @@ const WeatherWidget = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
     const getApproxLocation = async () => {
@@ -123,11 +124,24 @@ const WeatherWidget = () => {
           temperatureUnit: data.temperatureUnit,
           windSpeedUnit: data.windSpeedUnit,
         });
+        setIsFallback(false);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching weather data:', error);
+
+        // Fallback: Show default weather data
+        setData({
+          temperature: 22,
+          condition: 'Partly Cloudy',
+          location: location.city || 'Unknown',
+          humidity: 45,
+          windSpeed: 10,
+          icon: '02d', // partly cloudy day icon
+          temperatureUnit: localStorage.getItem('measureUnit') === 'Imperial' ? 'F' : 'C',
+          windSpeedUnit: localStorage.getItem('measureUnit') === 'Imperial' ? 'mph' : 'm/s',
+        });
+        setIsFallback(true);
         setLoading(false);
-        return;
       }
     });
   }, []);
@@ -179,7 +193,7 @@ const WeatherWidget = () => {
             </span>
             <div className="flex flex-row justify-between w-full mt-auto pt-1 border-t border-light-200 dark:border-dark-200 text-xs text-black/60 dark:text-white/60">
               <span>Humidity: {data.humidity}%</span>
-              <span>Now</span>
+              <span>{isFallback ? 'Offline' : 'Now'}</span>
             </div>
           </div>
         </>
